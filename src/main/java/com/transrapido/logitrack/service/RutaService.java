@@ -1,0 +1,66 @@
+package com.transrapido.logitrack.service;
+
+import com.transrapido.logitrack.dto.RutaRequest;
+import com.transrapido.logitrack.exception.RecursoNoDisponibleException;
+import com.transrapido.logitrack.exception.RecursoNoEncontradoException;
+import com.transrapido.logitrack.model.Camion;
+import com.transrapido.logitrack.model.Conductor;
+import com.transrapido.logitrack.model.Ruta;
+import com.transrapido.logitrack.model.enums.EstadoCamion;
+import com.transrapido.logitrack.model.enums.EstadoRuta;
+import com.transrapido.logitrack.repository.CamionRepository;
+import com.transrapido.logitrack.repository.ConductorRepository;
+import com.transrapido.logitrack.repository.RutaRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+// Asignacion de rutas (Tabla 35, seccion 5.1 del informe): la regla mas importante
+// del capitulo vive aqui, no en el Controller (RF-08, HU-05 - CA2).
+@Service
+public class RutaService {
+
+    private final RutaRepository rutaRepository;
+    private final CamionRepository camionRepository;
+    private final ConductorRepository conductorRepository;
+
+    public RutaService(RutaRepository rutaRepository, CamionRepository camionRepository,
+                        ConductorRepository conductorRepository) {
+        this.rutaRepository = rutaRepository;
+        this.camionRepository = camionRepository;
+        this.conductorRepository = conductorRepository;
+    }
+
+    public Ruta asignarRuta(RutaRequest datos) {
+        Camion camion = camionRepository.findById(datos.getCamionId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Camion no encontrado"));
+        Conductor conductor = conductorRepository.findById(datos.getConductorId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Conductor no encontrado"));
+
+        if (camion.getEstado() != EstadoCamion.DISPONIBLE) {
+            throw new RecursoNoDisponibleException("El camion ya esta asignado a otra ruta");
+        }
+        if (conductor.tieneRutaActiva()) {
+            throw new RecursoNoDisponibleException("El conductor ya tiene una ruta en curso");
+        }
+
+        Ruta ruta = new Ruta(camion, conductor, datos.getOrigen(), datos.getDestino(), datos.getFechaSalida());
+        camion.setEstado(EstadoCamion.EN_RUTA);
+        return rutaRepository.save(ruta);
+    }
+
+    public Ruta finalizar(Long id) {
+        Ruta ruta = rutaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Ruta no encontrada"));
+        if (ruta.getEstado() == EstadoRuta.FINALIZADA) {
+            throw new RecursoNoDisponibleException("La ruta ya estaba finalizada");
+        }
+        ruta.setEstado(EstadoRuta.FINALIZADA);
+        ruta.getCamion().setEstado(EstadoCamion.DISPONIBLE);
+        return rutaRepository.save(ruta);
+    }
+
+    public Optional<Ruta> obtenerRutaDelConductor(Long conductorId) {
+        return rutaRepository.findFirstByConductor_IdAndEstado(conductorId, EstadoRuta.EN_CURSO);
+    }
+}
