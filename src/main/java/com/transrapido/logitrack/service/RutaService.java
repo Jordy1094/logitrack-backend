@@ -13,6 +13,7 @@ import com.transrapido.logitrack.repository.ConductorRepository;
 import com.transrapido.logitrack.repository.RutaRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 // Asignacion de rutas (Tabla 35, seccion 5.1 del informe): la regla mas importante
@@ -37,6 +38,11 @@ public class RutaService {
         Conductor conductor = conductorRepository.findById(datos.getConductorId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Conductor no encontrado"));
 
+        // Figura 9 (wireframe): el mensaje explica el motivo concreto en lenguaje del usuario.
+        if (camion.getEstado() == EstadoCamion.EN_MANTENIMIENTO) {
+            throw new RecursoNoDisponibleException(
+                    "El camion " + camion.getPlaca() + " esta en mantenimiento y no puede asignarse");
+        }
         if (camion.getEstado() != EstadoCamion.DISPONIBLE) {
             throw new RecursoNoDisponibleException("El camion ya esta asignado a otra ruta");
         }
@@ -47,6 +53,15 @@ public class RutaService {
         Ruta ruta = new Ruta(camion, conductor, datos.getOrigen(), datos.getDestino(), datos.getFechaSalida());
         camion.setEstado(EstadoCamion.EN_RUTA);
         return rutaRepository.save(ruta);
+    }
+
+    // GET /api/rutas (Capitulo 6): el Dashboard lista las rutas en curso para poder
+    // finalizarlas (RF-14); sin filtro devuelve todas, de la mas reciente a la mas antigua.
+    public List<Ruta> listar(EstadoRuta estado) {
+        if (estado != null) {
+            return rutaRepository.findByEstadoOrderByFechaSalidaDesc(estado);
+        }
+        return rutaRepository.findAllByOrderByFechaSalidaDesc();
     }
 
     public Ruta finalizar(Long id) {

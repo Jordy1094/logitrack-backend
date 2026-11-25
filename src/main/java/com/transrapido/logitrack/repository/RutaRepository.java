@@ -9,5 +9,9 @@ import java.util.Optional;
 
 public interface RutaRepository extends JpaRepository<Ruta, Long> {
     List<Ruta> findByEstado(EstadoRuta estado);
+
+    List<Ruta> findByEstadoOrderByFechaSalidaDesc(EstadoRuta estado);
+
+    List<Ruta> findAllByOrderByFechaSalidaDesc();
     Optional<Ruta> findFirstByConductor_IdAndEstado(Long conductorId, EstadoRuta estado);
 }

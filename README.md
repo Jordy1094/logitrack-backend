@@ -50,7 +50,44 @@ Cambia estas credenciales (o elimina `DataSeeder.java`) antes de cualquier entor
 2. En las demás peticiones, agregar el encabezado `Authorization: Bearer <token>`.
 3. Los casos sugeridos en la Tabla 37 del informe (login válido/inválido, crear ruta con camión disponible/no disponible, placa repetida, dar de baja un camión en ruta, etc.) se pueden reproducir contra `http://localhost:8080`.
 
-## Endpoints
+## Endpoints y documentación Swagger
 
-Los 17 endpoints están documentados en las Tablas 34 a 36 del informe (`/api/auth`, `/api/camiones`, `/api/conductores`, `/api/rutas`, `/api/mantenimientos`, `/api/dashboard`).
+Los endpoints están documentados en las Tablas 34 a 36 del informe (`/api/auth`, `/api/camiones`, `/api/conductores`, `/api/rutas`, `/api/mantenimientos`, `/api/dashboard`). En la integración con Angular (Capítulo 6) se agregó `GET /api/rutas?estado=EN_CURSO`, que usa el Dashboard para listar y finalizar las rutas en curso.
+
+Con el backend en ejecución, la documentación interactiva (Capítulo 7) está en:
+
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Para probar un endpoint protegido: ejecutar `POST /api/auth/login`, copiar el `token`, pulsar **Authorize** y pegarlo.
+
+## Pruebas unitarias
+
+```bash
+mvn test
+```
+
+`RutaServiceTest` y `MantenimientoServiceTest` prueban con JUnit 5 y Mockito las reglas de negocio principales (asignación de ruta con camión o conductor ocupado, finalización, ingreso y cierre de mantenimiento) sin necesidad de base de datos.
+
+## Variables de entorno (despliegue, Capítulo 8)
+
+| Variable | Uso | Valor local por defecto |
+|---|---|---|
+| `DB_URL` | URL JDBC de MySQL | `jdbc:mysql://localhost:3306/logitrack` |
+| `DB_USERNAME` / `DB_PASSWORD` | Credenciales de MySQL | `root` / `root` |
+| `DDL_AUTO` | `update` en el primer despliegue, luego `validate` | `update` |
+| `JWT_SECRET` | Clave de firma del token (mínimo 32 caracteres) | clave de desarrollo |
+| `JWT_EXPIRATION_MS` | Vigencia del token (RNF-01: 8 horas) | `28800000` |
+| `CORS_ALLOWED_ORIGINS` | Dominios del frontend separados por coma | `http://localhost:4200` |
+| `PORT` | Puerto (Render lo asigna solo) | `8080` |
+
+## Despliegue en Render
+
+El repositorio incluye un `Dockerfile` (Render no tiene entorno nativo de Java):
+
+1. Crear la base MySQL en Railway y copiar host, puerto, usuario, contraseña y nombre de la base.
+2. En Render: **New → Web Service**, conectar este repositorio, *Runtime: Docker*, plan *Free*.
+3. Cargar las variables de entorno de la tabla anterior. `DB_URL` queda así:
+   `jdbc:mysql://<host>:<puerto>/<base>?useSSL=true&requireSSL=false&serverTimezone=America/Lima`
+4. Al terminar el despliegue, la API queda en `https://<servicio>.onrender.com` (HTTPS con certificado de Render).
 

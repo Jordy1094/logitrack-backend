@@ -1,5 +1,6 @@
 package com.transrapido.logitrack.dto;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,6 +21,7 @@ public class RutaRequest {
     private String destino;
 
     @NotNull(message = "La fecha de salida es obligatoria")
+    @FutureOrPresent(message = "La fecha de salida no puede estar en el pasado")
     private LocalDateTime fechaSalida;
 
     public Long getCamionId() {

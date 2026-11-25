@@ -3,9 +3,11 @@ package com.transrapido.logitrack.config;
 import com.transrapido.logitrack.security.JwtAccessDeniedHandler;
 import com.transrapido.logitrack.security.JwtAuthenticationEntryPoint;
 import com.transrapido.logitrack.security.JwtFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,6 +15,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 // Spring Security + JWT (seccion 4.2): sin sesion en el servidor, cada peticion
 // protegida se autentica con el token que agrega JwtFilter (RNF-01, RNF-02).
@@ -23,12 +31,35 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
     private final JwtAccessDeniedHandler accessDeniedHandler;
+    private final String allowedOrigins;
 
     public SecurityConfig(JwtFilter jwtFilter, JwtAuthenticationEntryPoint authenticationEntryPoint,
-                           JwtAccessDeniedHandler accessDeniedHandler) {
+                           JwtAccessDeniedHandler accessDeniedHandler,
+                           @Value("${app.cors.allowed-origins}") String allowedOrigins) {
         this.jwtFilter = jwtFilter;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.allowedOrigins = allowedOrigins;
+    }
+
+    // Incidencia I-01 del Capitulo 6: sin esta configuracion el navegador bloqueaba
+    // las peticiones de Angular (http://localhost:4200) hacia la API (http://localhost:8080)
+    // por la politica de mismo origen. Solo se aceptan los origenes declarados en
+    // app.cors.allowed-origins (RNF-05), no "*".
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origen -> !origen.isEmpty())
+                .toList());
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     @Bean
@@ -39,6 +70,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(eh -> eh
@@ -48,6 +80,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // HU-01 (Tabla 19): el login es el unico endpoint publico.
                 .requestMatchers("/api/auth/login").permitAll()
+
+                // Capitulo 7: la documentacion Swagger es publica para poder consultarla
+                // y probar la API (los endpoints siguen pidiendo el token al ejecutarlos).
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
                 // HU-11, HU-12: el conductor solo ve su propia ruta y reporta su propio camion.
                 .requestMatchers(HttpMethod.GET, "/api/rutas/mia").hasRole("CONDUCTOR")
@@ -68,6 +104,8 @@ public class SecurityConfig {
                 // HU-05, HU-06: asignar y finalizar una ruta es tarea del Supervisor; el
                 // Administrador, al ser el rol de mayor nivel (Tabla 5: gerente), tambien
                 // puede hacerlo, igual que con el resto de la operacion.
+                // Capitulo 6: el Dashboard lista las rutas (filtrando EN_CURSO) para poder finalizarlas.
+                .requestMatchers(HttpMethod.GET, "/api/rutas").hasAnyRole("ADMINISTRADOR", "SUPERVISOR")
                 .requestMatchers(HttpMethod.POST, "/api/rutas").hasAnyRole("ADMINISTRADOR", "SUPERVISOR")
                 .requestMatchers(HttpMethod.PUT, "/api/rutas/*/finalizar").hasAnyRole("ADMINISTRADOR", "SUPERVISOR")
 

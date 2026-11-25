@@ -37,6 +37,9 @@ public class MantenimientoService {
 
     public Mantenimiento registrarIngreso(Long id) {
         Mantenimiento mantenimiento = obtenerOLanzar(id);
+        if (mantenimiento.getEstado() != EstadoMantenimiento.PROGRAMADO) {
+            throw new RecursoNoDisponibleException("El mantenimiento no esta programado (ya esta en el taller o fue cerrado)");
+        }
         Camion camion = mantenimiento.getCamion();
         if (camion.getEstado() == EstadoCamion.EN_RUTA) {
             throw new RecursoNoDisponibleException("El camion esta en ruta");
@@ -49,6 +52,10 @@ public class MantenimientoService {
 
     public Mantenimiento registrarCierre(Long id) {
         Mantenimiento mantenimiento = obtenerOLanzar(id);
+        // Tabla 9: solo se cierra un mantenimiento que esta en curso (camion en el taller).
+        if (mantenimiento.getEstado() != EstadoMantenimiento.EN_TALLER) {
+            throw new RecursoNoDisponibleException("Solo se puede cerrar un mantenimiento que esta en el taller");
+        }
         mantenimiento.setEstado(EstadoMantenimiento.CERRADO);
         mantenimiento.setFechaCierre(LocalDate.now());
         mantenimiento.getCamion().setEstado(EstadoCamion.DISPONIBLE);
