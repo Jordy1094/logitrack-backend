@@ -1,5 +1,6 @@
 package com.transrapido.logitrack.controller;
 
+import com.transrapido.logitrack.dto.Pagina;
 import com.transrapido.logitrack.dto.RutaRequest;
 import com.transrapido.logitrack.exception.RecursoNoEncontradoException;
 import com.transrapido.logitrack.model.Conductor;
@@ -31,6 +32,14 @@ public class RutaController {
     @GetMapping
     public List<Ruta> listar(@RequestParam(required = false) EstadoRuta estado) {
         return rutaService.listar(estado);
+    }
+
+    // RNF-17: con el parametro pagina, la misma URL devuelve una pagina (Pagina<Ruta>).
+    @GetMapping(params = "pagina")
+    public Pagina<Ruta> listarPagina(@RequestParam(required = false) EstadoRuta estado,
+                                     @RequestParam int pagina,
+                                     @RequestParam(defaultValue = "5") int tamano) {
+        return rutaService.listarPagina(estado, pagina, tamano);
     }
 
     @PostMapping

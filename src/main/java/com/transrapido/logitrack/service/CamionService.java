@@ -1,6 +1,7 @@
 package com.transrapido.logitrack.service;
 
 import com.transrapido.logitrack.dto.CamionRequest;
+import com.transrapido.logitrack.dto.Pagina;
 import com.transrapido.logitrack.dto.ReporteRequest;
 import com.transrapido.logitrack.exception.RecursoNoDisponibleException;
 import com.transrapido.logitrack.exception.RecursoNoEncontradoException;
@@ -8,6 +9,8 @@ import com.transrapido.logitrack.exception.SolicitudInvalidaException;
 import com.transrapido.logitrack.model.Camion;
 import com.transrapido.logitrack.model.enums.EstadoCamion;
 import com.transrapido.logitrack.repository.CamionRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +34,17 @@ public class CamionService {
             return camionRepository.findByPlaca(placa).map(List::of).orElseGet(List::of);
         }
         return camionRepository.findAll();
+    }
+
+    // GET /api/camiones?pagina=0&tamano=10 (RNF-17): la tabla de camiones se carga por paginas,
+    // ordenada por placa, con el mismo buscador y filtro de RF-05.
+    public Pagina<Camion> listarPagina(EstadoCamion estado, String placa, int pagina, int tamano) {
+        Pageable solicitud = Pagina.solicitud(pagina, tamano, Sort.by("placa"));
+        String texto = placa == null ? "" : placa.trim();
+        if (estado != null) {
+            return Pagina.de(camionRepository.findByEstadoAndPlacaContainingIgnoreCase(estado, texto, solicitud));
+        }
+        return Pagina.de(camionRepository.findByPlacaContainingIgnoreCase(texto, solicitud));
     }
 
     public List<Camion> listarDisponibles() {

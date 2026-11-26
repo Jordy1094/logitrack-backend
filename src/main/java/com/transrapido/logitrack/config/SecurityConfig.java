@@ -98,8 +98,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/camiones/*").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/camiones/*").hasRole("ADMINISTRADOR")
 
-                // HU-03: registrar conductores es tarea del Administrador.
+                // HU-03, RF-04: registrar, editar y dar de baja conductores es tarea del Administrador.
                 .requestMatchers(HttpMethod.POST, "/api/conductores").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PUT, "/api/conductores/*").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/conductores/*").hasRole("ADMINISTRADOR")
 
                 // HU-05, HU-06: asignar y finalizar una ruta es tarea del Supervisor; el
                 // Administrador, al ser el rol de mayor nivel (Tabla 5: gerente), tambien

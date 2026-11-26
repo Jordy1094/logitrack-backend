@@ -2,6 +2,7 @@ package com.transrapido.logitrack.controller;
 
 import com.transrapido.logitrack.dto.CamionRequest;
 import com.transrapido.logitrack.dto.MantenimientoRequest;
+import com.transrapido.logitrack.dto.Pagina;
 import com.transrapido.logitrack.dto.ReporteRequest;
 import com.transrapido.logitrack.model.Camion;
 import com.transrapido.logitrack.model.Mantenimiento;
@@ -31,6 +32,15 @@ public class CamionController {
     public List<Camion> listar(@RequestParam(required = false) EstadoCamion estado,
                                 @RequestParam(required = false) String placa) {
         return camionService.listar(estado, placa);
+    }
+
+    // RNF-17: con el parametro pagina, la misma URL devuelve una pagina (Pagina<Camion>).
+    @GetMapping(params = "pagina")
+    public Pagina<Camion> listarPagina(@RequestParam(required = false) EstadoCamion estado,
+                                       @RequestParam(required = false) String placa,
+                                       @RequestParam int pagina,
+                                       @RequestParam(defaultValue = "10") int tamano) {
+        return camionService.listarPagina(estado, placa, pagina, tamano);
     }
 
     @GetMapping("/disponibles")

@@ -1,5 +1,6 @@
 package com.transrapido.logitrack.service;
 
+import com.transrapido.logitrack.dto.Pagina;
 import com.transrapido.logitrack.dto.RutaRequest;
 import com.transrapido.logitrack.exception.RecursoNoDisponibleException;
 import com.transrapido.logitrack.exception.RecursoNoEncontradoException;
@@ -11,6 +12,8 @@ import com.transrapido.logitrack.model.enums.EstadoRuta;
 import com.transrapido.logitrack.repository.CamionRepository;
 import com.transrapido.logitrack.repository.ConductorRepository;
 import com.transrapido.logitrack.repository.RutaRepository;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -62,6 +65,15 @@ public class RutaService {
             return rutaRepository.findByEstadoOrderByFechaSalidaDesc(estado);
         }
         return rutaRepository.findAllByOrderByFechaSalidaDesc();
+    }
+
+    // GET /api/rutas?pagina=0&tamano=5 (RNF-17): rutas por paginas, de la mas reciente a la mas antigua.
+    public Pagina<Ruta> listarPagina(EstadoRuta estado, int pagina, int tamano) {
+        Pageable solicitud = Pagina.solicitud(pagina, tamano, Sort.by(Sort.Direction.DESC, "fechaSalida"));
+        if (estado != null) {
+            return Pagina.de(rutaRepository.findByEstado(estado, solicitud));
+        }
+        return Pagina.de(rutaRepository.findAll(solicitud));
     }
 
     public Ruta finalizar(Long id) {
