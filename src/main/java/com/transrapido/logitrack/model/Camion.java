@@ -132,4 +132,5 @@ public class Camion {
     public void setDescripcionNovedad(String descripcionNovedad) {
         this.descripcionNovedad = descripcionNovedad;
     }
+    
 }
