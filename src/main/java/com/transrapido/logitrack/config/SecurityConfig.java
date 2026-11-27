@@ -46,7 +46,6 @@ public class SecurityConfig {
     // las peticiones de Angular (http://localhost:4200) hacia la API (http://localhost:8080)
     // por la politica de mismo origen. Solo se aceptan los origenes declarados en
     // app.cors.allowed-origins (RNF-05), no "*".
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -132,5 +131,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-    
 }

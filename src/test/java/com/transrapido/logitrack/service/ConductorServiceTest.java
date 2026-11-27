@@ -2,6 +2,7 @@ package com.transrapido.logitrack.service;
 
 import com.transrapido.logitrack.dto.ConductorRequest;
 import com.transrapido.logitrack.exception.RecursoNoDisponibleException;
+import com.transrapido.logitrack.exception.SolicitudInvalidaException;
 import com.transrapido.logitrack.model.Camion;
 import com.transrapido.logitrack.model.Conductor;
 import com.transrapido.logitrack.model.Ruta;
@@ -79,5 +80,24 @@ class ConductorServiceTest {
         conductorService.darDeBaja(5L);
 
         verify(conductorRepository).delete(conductor);
+    }
+
+    // Mejora: prueba unitaria nueva para el registro de conductores (RF-04, Tabla 48).
+    @Test
+    @DisplayName("RF-04: no se registra un conductor con un DNI ya existente")
+    void registrar_conDniExistente_lanzaError() {
+        ConductorRequest datos = new ConductorRequest();
+        datos.setDni("45678912");
+        datos.setNombres("Carlos");
+        datos.setApellidos("Mendoza");
+        datos.setNroLicencia("Q99999999");
+        datos.setTelefono("987654321");
+        when(conductorRepository.existsByDni("45678912")).thenReturn(true);
+
+        SolicitudInvalidaException error = assertThrows(SolicitudInvalidaException.class,
+                () -> conductorService.registrar(datos));
+
+        assertEquals("El DNI ya esta registrado", error.getMessage());
+        verify(conductorRepository, never()).save(any(Conductor.class));
     }
 }
