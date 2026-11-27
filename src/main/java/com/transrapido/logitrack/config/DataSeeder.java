@@ -5,6 +5,7 @@ import com.transrapido.logitrack.model.Usuario;
 import com.transrapido.logitrack.model.enums.RolUsuario;
 import com.transrapido.logitrack.repository.ConductorRepository;
 import com.transrapido.logitrack.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -17,12 +18,19 @@ import org.springframework.stereotype.Component;
 // tabla usuario esta vacia, para que existan credenciales con las que probar el
 // login y los endpoints protegidos en Postman. No agrega ni reemplaza ningun
 // endpoint de la Tabla 34 a 36.
+//
+// Mejora (Tabla 48, "Cuentas de prueba"): se puede desactivar con la variable de
+// entorno SEED_DEMO_DATA=false (por ejemplo, despues de la sustentacion). Por
+// defecto queda en true, asi el comportamiento actual en Render no cambia.
 @Component
 public class DataSeeder implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
     private final ConductorRepository conductorRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${SEED_DEMO_DATA:true}")
+    private boolean seedDemoData;
 
     public DataSeeder(UsuarioRepository usuarioRepository, ConductorRepository conductorRepository,
                        PasswordEncoder passwordEncoder) {
@@ -33,7 +41,7 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (usuarioRepository.count() > 0) {
+        if (!seedDemoData || usuarioRepository.count() > 0) {
             return;
         }
 
